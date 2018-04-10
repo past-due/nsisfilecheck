@@ -1,0 +1,44 @@
+environment:
+  matrix:
+  # 32-bit (x86) Windows build (VS 2015) - NO DEPLOY:
+  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
+    VC_GENERATOR: "Visual Studio 14 2015"
+    VC_TOOLCHAIN: v140_xp
+    VC_TARGET_PLATFORMNAME: Win32
+    OUTPUT_PLATFORMNAME: x86
+  # 32-bit (x86) Windows build (VS 2017):
+  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+    VC_GENERATOR: "Visual Studio 15 2017"
+    VC_TOOLCHAIN: v141_xp
+    VC_TARGET_PLATFORMNAME: Win32
+    OUTPUT_PLATFORMNAME: x86
+  # 64-bit (x64) Windows build (VS 2017):
+  - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+    VC_GENERATOR: "Visual Studio 15 2017"
+    VC_TOOLCHAIN: v141_xp
+    VC_TARGET_PLATFORMNAME: x64
+    OUTPUT_PLATFORMNAME: x64
+
+platform:
+  - x64
+
+configuration:
+  - Release
+
+before_build:
+  # Use CMake to configure the appropriate Visual Studio (MSBUILD) generator, toolchain, target platform, and install location
+  - cmake -H. -Bbuild  -G "%VC_GENERATOR%" -T "%VC_TOOLCHAIN%" -A "%VC_TARGET_PLATFORMNAME%" -DCMAKE_INSTALL_PREFIX:PATH="%APPVEYOR_BUILD_FOLDER%\install"
+
+build:
+  parallel: true
+  project: build/INSTALL.vcxproj
+
+after_build:
+  # Package the install output into a zip
+  # Name the zip file based on the platform-name & repo info:
+  #   filecheck-<BRANCH>-<DATE>-<TIME>-<COMMIT_FIRST_7>-<PLATFORM: x86, x64>.zip
+  - ps: cmd /c 7z a "filecheck-$($env:APPVEYOR_REPO_BRANCH)-$(get-date -f yyyyMMdd-HHmmss)-$($env:APPVEYOR_REPO_COMMIT.SubString(0,7))-$($env:OUTPUT_PLATFORMNAME).zip" "$($env:APPVEYOR_BUILD_FOLDER)\install\*"
+
+artifacts:
+  - path: filecheck-*.zip
+    name: NSIS FileCheck plugin (zip)
