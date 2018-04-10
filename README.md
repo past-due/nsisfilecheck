@@ -8,7 +8,7 @@
 - **Windows**: Windows XP -> Windows 10
 - **NSIS**: 3.0+ (ANSI or Unicode)
 
-### General Compatibiity Notes:
+### General Compatibility Notes:
 The resulting `filecheck.dll`:
 - Does **not** have a dependency on the CRT, and should run on systems that do not yet have the VCRedist / CRT installed.
 - Dynamically loads all libraries except `kernel32.dll` and `user32.dll`, and handles differing OS / patch-level support of the underlying Windows APIs used automatically.
