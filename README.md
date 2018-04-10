@@ -1,4 +1,4 @@
-# NSIS FileCheck
+# NSIS FileCheck [![Build status](https://ci.appveyor.com/api/projects/status/4swfw5dvud34520r/branch/master?svg=true)](https://ci.appveyor.com/project/past-due/nsisfilecheck/branch/master)
 [NSIS (Nullsoft Scriptable Install System)](https://en.wikipedia.org/wiki/Nullsoft_Scriptable_Install_System) plugin that enables:
 - Calculating a file's hash (SHA1, SHA2)
 - Verifying a file's Authenticode code signature (including details)
