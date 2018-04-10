@@ -16,6 +16,10 @@ set(SOURCE_FILES filecheck.cpp codesigncheck.cpp nsis/pluginapi.c nsis/crt.cpp h
 
 # ANSI / MBCS DLL
 add_library(filecheck_ansi MODULE ${SOURCE_FILES})
+set_target_properties(filecheck_ansi PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}")
+set_target_properties(filecheck_ansi PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}")
+set_target_properties(filecheck_ansi PROPERTIES LIBRARY_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}")
+set_target_properties(filecheck_ansi PROPERTIES LIBRARY_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}")
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/filecheck_ansi.dll"
 		RENAME "filecheck.dll"
 		COMPONENT Plugins DESTINATION "Plugins/ansi")
@@ -23,6 +27,10 @@ install(FILES "${CMAKE_CURRENT_BINARY_DIR}/filecheck_ansi.dll"
 # Unicode DLL
 add_library(filecheck_unicode MODULE ${SOURCE_FILES})
 target_compile_definitions(filecheck_unicode PRIVATE "UNICODE" "_UNICODE")
+set_target_properties(filecheck_unicode PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}")
+set_target_properties(filecheck_unicode PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}")
+set_target_properties(filecheck_unicode PROPERTIES LIBRARY_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}")
+set_target_properties(filecheck_unicode PROPERTIES LIBRARY_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}")
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/filecheck_unicode.dll"
 		RENAME "filecheck.dll"
 		COMPONENT Plugins DESTINATION "Plugins/unicode")

@@ -36,8 +36,8 @@
 #endif
 
 #include <windows.h>
-#include <Strsafe.h>
 #include "nsis/pluginapi.h"
+#include <Strsafe.h>
 #include "codesigncheck.h"
 #include "hashfile.h"
 #include "versioninfo.h"

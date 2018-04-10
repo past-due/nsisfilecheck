@@ -6,6 +6,10 @@
 	#pragma runtime_checks( "", off ) 
 #endif
 
+#if !defined(LOAD_LIBRARY_SEARCH_SYSTEM32)
+#define LOAD_LIBRARY_SEARCH_SYSTEM32        0x00000800
+#endif
+
 // Safely load a system library
 // Expectation: lpFileName is a filename
 extern "C" HMODULE SafeLoadSystemLibrary(LPCTSTR lpFileName)
