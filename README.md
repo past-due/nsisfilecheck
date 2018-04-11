@@ -1,4 +1,4 @@
-# NSIS FileCheck [![Build status](https://ci.appveyor.com/api/projects/status/4swfw5dvud34520r/branch/master?svg=true)](https://ci.appveyor.com/project/past-due/nsisfilecheck/branch/master)
+# NSIS FileCheck [![Build status](https://ci.appveyor.com/api/projects/status/4swfw5dvud34520r/branch/master?svg=true)](https://ci.appveyor.com/project/past-due/nsisfilecheck/branch/master) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT) [![NSIS: 3.0+](https://img.shields.io/badge/NSIS-3.0%2B-orange.svg)](https://en.wikipedia.org/wiki/Nullsoft_Scriptable_Install_System)
 [NSIS (Nullsoft Scriptable Install System)](https://en.wikipedia.org/wiki/Nullsoft_Scriptable_Install_System) plugin that enables:
 - Calculating a file's hash (SHA1, SHA2)
 - Verifying a file's Authenticode code signature (including details)
@@ -22,4 +22,3 @@ _TODO: Usage examples coming soon._
 ### Compilation Requirements:
 - Visual Studio 2017
 - CMake 3.5+ (3.10+ recommended)
-
