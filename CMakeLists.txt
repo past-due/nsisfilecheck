@@ -6,3 +6,7 @@ if(NOT WIN32)
 endif()
 
 add_subdirectory(Source)
+
+file(GLOB INFO_FILES "*.txt" "*.md" "LICENSE")
+INSTALL(FILES ${INFO_FILES}
+		COMPONENT "Info" DESTINATION ".")

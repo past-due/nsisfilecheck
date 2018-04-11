@@ -50,7 +50,7 @@ endif()
 # Additional Install Rules
 
 # Copy the source files over into the "Source" folder
-file(GLOB SRC_FILES "*.txt" "*.cpp" "*.c" "*.h" "LICENSE" "README.md")
+file(GLOB SRC_FILES "*.txt" "*.cpp" "*.c" "*.h")
 INSTALL(FILES ${SRC_FILES}
 		COMPONENT "Source" DESTINATION "Source")
 INSTALL(DIRECTORY "nsis"
