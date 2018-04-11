@@ -17,6 +17,20 @@ The resulting `filecheck.dll`:
 
 _TODO: Usage examples coming soon._
 
+## Security Tips
+
+#### Avoid SHA-1 if possible
+
+> [Since 2005 SHA-1 has not been considered secure against well-funded opponents, and since 2010 many organizations have recommended its replacement by SHA-2 or SHA-3.](https://en.wikipedia.org/wiki/SHA-1)
+
+This plugin supports SHA-2 on Windows XP SP3 and above. For almost all cases, there is zero reason to use SHA-1.
+
+#### Avoid TOCTOU
+
+[Time of check to time of use (TOCTOU / TOCTTOU)](https://en.wikipedia.org/wiki/Time_of_check_to_time_of_use) bugs can lead to security vulnerabilities.
+
+Do not assume that a file that has been checked has not been modified between the time of the check and the time of the use. Use proper security permissions on any containing / temporary folders to ensure that nothing unprivileged can modify a file between a check and any use.
+
 ## Development
 
 ### Compilation Requirements:
