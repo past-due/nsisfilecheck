@@ -374,24 +374,34 @@ static int HashFile_CryptoAPI(LPCTSTR pFilename, HASH_ALGORITHM algorithm, LPTST
 	PCryptReleaseContext Func_CryptReleaseContext = (PCryptReleaseContext)GetProcAddress(hAdvapi32Module, "CryptReleaseContext");
 	if (Func_CryptReleaseContext == NULL) return -1;
 
+	LPCTSTR pszProvider = MS_DEF_PROV;
+	LPCTSTR pszProvider_Fallback = NULL;
 	DWORD dwProvType = PROV_RSA_FULL;
 	ALG_ID algID = 0;
 	switch (algorithm)
 	{
 	case HASH_SHA1:
 		algID = CALG_SHA1;
+		pszProvider = MS_DEF_PROV;
+		pszProvider_Fallback = NULL;
 		dwProvType = PROV_RSA_FULL;
 		break;
 	case HASH_SHA256:
 		algID = CALG_SHA_256;
+		pszProvider = MS_ENH_RSA_AES_PROV;
+		pszProvider_Fallback = MS_ENH_RSA_AES_PROV_XP;
 		dwProvType = PROV_RSA_AES;
 		break;
 	case HASH_SHA384:
 		algID = CALG_SHA_384;
+		pszProvider = MS_ENH_RSA_AES_PROV;
+		pszProvider_Fallback = MS_ENH_RSA_AES_PROV_XP;
 		dwProvType = PROV_RSA_AES;
 		break;
 	case HASH_SHA512:
 		algID = CALG_SHA_512;
+		pszProvider = MS_ENH_RSA_AES_PROV;
+		pszProvider_Fallback = MS_ENH_RSA_AES_PROV_XP;
 		dwProvType = PROV_RSA_AES;
 		break;
 	default:
@@ -415,10 +425,14 @@ static int HashFile_CryptoAPI(LPCTSTR pFilename, HASH_ALGORITHM algorithm, LPTST
 		goto Cleanup;
 	}
 
-	if (Func_CryptAcquireContext(&hCryptProv, NULL, NULL, dwProvType, CRYPT_VERIFYCONTEXT) == FALSE)
+	if (Func_CryptAcquireContext(&hCryptProv, NULL, pszProvider, dwProvType, CRYPT_VERIFYCONTEXT) == FALSE)
 	{
-		// CryptAcquireContext failed
-		goto Cleanup;
+		// Attempt with fallback provider name
+		if (Func_CryptAcquireContext(&hCryptProv, NULL, pszProvider_Fallback, dwProvType, CRYPT_VERIFYCONTEXT) == FALSE)
+		{
+			// CryptAcquireContext failed
+			goto Cleanup;
+		}
 	}
 
 	if (Func_CryptCreateHash(hCryptProv, algID, 0, 0, &hHash) == FALSE)
