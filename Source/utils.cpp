@@ -49,11 +49,11 @@ extern "C" HMODULE SafeLoadSystemLibrary(LPCTSTR lpFileName)
 		{
 			return NULL;
 		}
-		if (FAILED(StringCchCopy(sysDirStr + sysDirLen, totalStringLen - sysDirLen, _T("\\"))))
+		if (FAILED(StringCchCat(sysDirStr, totalStringLen, _T("\\"))))
 		{
 			return NULL;
 		}
-		if (FAILED(StringCchCopy(sysDirStr + sysDirLen + 1, totalStringLen - sysDirLen - 1, lpFileName)))
+		if (FAILED(StringCchCat(sysDirStr, totalStringLen, lpFileName)))
 		{
 			return NULL;
 		}
