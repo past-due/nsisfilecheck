@@ -5,7 +5,7 @@
 //
 //	The MIT License
 //
-//	Copyright (c) 2018 pastdue  https://github.com/past-due/
+//	Copyright (c) 2018-2019 pastdue  https://github.com/past-due/
 //
 //	Permission is hereby granted, free of charge, to any person obtaining a copy
 //	of this software and associated documentation files (the "Software"), to deal
@@ -88,6 +88,10 @@ typedef DWORD (WINAPI *PCertGetNameString)(
 	DWORD          cchNameString
 );
 
+#if !defined(MICROSOFT_ROOT_CERT_CHAIN_POLICY_CHECK_APPLICATION_ROOT_FLAG)
+#define MICROSOFT_ROOT_CERT_CHAIN_POLICY_CHECK_APPLICATION_ROOT_FLAG 0x00020000
+#endif
+
 // Verifies that a certificate chain ends in a Microsoft Root
 static bool CertChainMicrosoftRootVerify(HMODULE hCrypt32Module,
 										 PCCERT_CHAIN_CONTEXT pChainContext)
@@ -101,18 +105,39 @@ static bool CertChainMicrosoftRootVerify(HMODULE hCrypt32Module,
 	ChainPolicyPara.dwFlags = 0;
 	CERT_CHAIN_POLICY_STATUS ChainPolicyStatus;
 	crtless_memset(&ChainPolicyStatus, 0, sizeof(CERT_CHAIN_POLICY_STATUS));
+	ChainPolicyStatus.cbSize = sizeof(CERT_CHAIN_POLICY_STATUS);
+
+	bool bMicrosoftRoot = false;
 
 	if (Func_CertVerifyCertificateChainPolicy(CERT_CHAIN_POLICY_MICROSOFT_ROOT, pChainContext, &ChainPolicyPara, &ChainPolicyStatus) == TRUE)
 	{
 		// CertVerifyCertificateChainPolicy was able to check the policy
 		// *Must* check ChainPolicyStatus.dwError to determine if the policy check was actually satisfied
-		return ChainPolicyStatus.dwError == 0;
+		bMicrosoftRoot = (ChainPolicyStatus.dwError == 0);
 	}
-	else
+
+	if (!bMicrosoftRoot)
 	{
-		// CertVerifyCertificateChainPolicy failed to check the policy
-		return false;
+		// If Microsoft Product Root verification was unsuccessful, check for the Microsoft Application Root
+		// via: MICROSOFT_ROOT_CERT_CHAIN_POLICY_CHECK_APPLICATION_ROOT_FLAG
+
+		CERT_CHAIN_POLICY_PARA AppRootChainPolicyPara;
+		crtless_memset(&AppRootChainPolicyPara, 0, sizeof(CERT_CHAIN_POLICY_PARA));
+		AppRootChainPolicyPara.cbSize = sizeof(CERT_CHAIN_POLICY_PARA);
+		AppRootChainPolicyPara.dwFlags = MICROSOFT_ROOT_CERT_CHAIN_POLICY_CHECK_APPLICATION_ROOT_FLAG;
+		CERT_CHAIN_POLICY_STATUS AppRootChainPolicyStatus;
+		crtless_memset(&AppRootChainPolicyStatus, 0, sizeof(CERT_CHAIN_POLICY_STATUS));
+		AppRootChainPolicyStatus.cbSize = sizeof(CERT_CHAIN_POLICY_STATUS);
+
+		if (Func_CertVerifyCertificateChainPolicy(CERT_CHAIN_POLICY_MICROSOFT_ROOT, pChainContext, &AppRootChainPolicyPara, &AppRootChainPolicyStatus) == TRUE)
+		{
+			// CertVerifyCertificateChainPolicy was able to check the policy
+			// *Must* check AppRootChainPolicyStatus.dwError to determine if the policy check was actually satisfied
+			bMicrosoftRoot = (AppRootChainPolicyStatus.dwError == 0);
+		}
 	}
+
+	return bMicrosoftRoot;
 }
 
 // Calls CertGetNameString with the specified parameters, allocating an appropriately-sized buffer
