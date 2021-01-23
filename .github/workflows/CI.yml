@@ -1,0 +1,133 @@
+name: CI
+
+on: [push]
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Release
+
+jobs:
+  windows-build:
+    strategy:
+      matrix:
+        compiler: ["MSVC_2019"]
+        architecture: ["x86", "x64", "arm64"]
+      fail-fast: false
+    
+    env:
+      BUILD_MSVC_VER: ${{ matrix.compiler }}
+      BUILD_TARGET_ARCH: ${{ matrix.architecture }}
+    
+    name: '${{matrix.architecture}} [${{matrix.compiler}}]'
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        path: source
+
+    - name: Generate Settings for Run [${{matrix.compiler}}:${{matrix.architecture}}]
+      id: settings
+      run: |
+        # Basic variable setup
+        # --------------------
+        $BUILD_VC_TARGET_PLATFORMNAME = "$env:BUILD_TARGET_ARCH"
+        $BUILD_DESC = "win_${env:BUILD_TARGET_ARCH}"
+        if ($env:BUILD_TARGET_ARCH -eq "x86") {
+          $BUILD_VC_TARGET_PLATFORMNAME = "Win32" # special case, map "x86" -> "Win32"
+        }
+
+        # ------------------------------
+        # MSVC version / generator info
+        $BUILD_VISUAL_STUDIO_INSTALL_PATH = ""
+        if ($env:BUILD_MSVC_VER -eq "MSVC_2019") {
+          $BUILD_VC_GENERATOR = "Visual Studio 16 2019"
+          if (($env:BUILD_TARGET_ARCH -eq "x86") -or ($env:BUILD_TARGET_ARCH -eq "x64")) {
+            $BUILD_VC_TOOLCHAIN = "v141_xp"
+          }
+          # Get the installation path for a specific version of MSVC (2019)
+          $BUILD_VISUAL_STUDIO_INSTALL_PATH = & "vswhere.exe" -latest -property installationPath -version "[16.0,17.0)"
+          if ($LastExitCode -ne 0)
+          {
+            echo "::warning ::Could not find MSVC 2019"
+            $BUILD_VISUAL_STUDIO_INSTALL_PATH = ""
+          }
+        }
+        elseif ($env:BUILD_MSVC_VER -eq "MSVC_2017") {
+          $BUILD_VC_GENERATOR = "Visual Studio 15 2017"
+          if (($env:BUILD_TARGET_ARCH -eq "x86") -or ($env:BUILD_TARGET_ARCH -eq "x64")) {
+            $BUILD_VC_TOOLCHAIN = "v141_xp"
+          }
+          # Get the installation path for a specific version of MSVC (2017)
+          $BUILD_VISUAL_STUDIO_INSTALL_PATH = & "vswhere.exe" -latest -property installationPath -version "[15.0,16.0)"
+          if ($LastExitCode -ne 0)
+          {
+            echo "::warning ::Could not find MSVC 2017"
+            $BUILD_VISUAL_STUDIO_INSTALL_PATH = ""
+          }
+        }
+        if ([string]::IsNullOrWhitespace(${BUILD_VISUAL_STUDIO_INSTALL_PATH}))
+        {
+          $BUILD_VISUAL_STUDIO_INSTALL_PATH = & "vswhere.exe" -latest -property installationPath
+          echo "::warning ::Default to 'latest' MSVC: `"${BUILD_VISUAL_STUDIO_INSTALL_PATH}`""
+          $BUILD_VC_TOOLCHAIN = ""
+        }
+        
+        $BUILD_VISUAL_STUDIO_INSTALL_VERSION = & "vswhere.exe" -path "${BUILD_VISUAL_STUDIO_INSTALL_PATH}" -property installationVersion
+        echo "BUILD_VISUAL_STUDIO_INSTALL_VERSION = ${BUILD_VISUAL_STUDIO_INSTALL_VERSION}"
+        
+        # Export Variables
+        # Export everything important to environment variables (for future steps)
+        echo "BUILD_VC_TARGET_PLATFORMNAME=${BUILD_VC_TARGET_PLATFORMNAME}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        echo "BUILD_DESC=${BUILD_DESC}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        echo "BUILD_VC_GENERATOR=${BUILD_VC_GENERATOR}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        echo "BUILD_VC_TOOLCHAIN=${BUILD_VC_TOOLCHAIN}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        echo "BUILD_VISUAL_STUDIO_INSTALL_PATH=${BUILD_VISUAL_STUDIO_INSTALL_PATH}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        echo "::set-output name=BUILD_VISUAL_STUDIO_INSTALL_VERSION::${BUILD_VISUAL_STUDIO_INSTALL_VERSION}"
+
+    - name: Create Build Environment
+      # Some projects don't allow in-source building, so create a separate build directory
+      # We'll use this as our working directory for all subsequent commands
+      run: |
+        cmake -E make_directory ${{github.workspace}}/build
+        cmake -E make_directory ${{github.workspace}}/install
+
+    - name: Configure CMake
+      working-directory: ${{github.workspace}}/build
+      env:
+        CXXFLAGS: '/MP'
+      run: |
+        Set-PSDebug -Trace 1
+        # Use CMake to configure with the appropriate Visual Studio (MSBUILD) generator, toolchain, and target platform (portable build)
+        if ([string]::IsNullOrWhitespace(${env:BUILD_VC_TOOLCHAIN}))
+        {
+          # configure without specifying toolchain
+          cmake -DCMAKE_GENERATOR_INSTANCE="${env:BUILD_VISUAL_STUDIO_INSTALL_PATH}" -DCMAKE_BUILD_TYPE="${env:BUILD_TYPE}" -DCMAKE_INSTALL_PREFIX:PATH="${{github.workspace}}\install" -G "${env:BUILD_VC_GENERATOR}" -A "${env:BUILD_VC_TARGET_PLATFORMNAME}" -S "${{github.workspace}}\source" -B "${{github.workspace}}\build"
+        }
+        else
+        {
+          cmake -DCMAKE_GENERATOR_INSTANCE="${env:BUILD_VISUAL_STUDIO_INSTALL_PATH}" -DCMAKE_BUILD_TYPE="${env:BUILD_TYPE}" -DCMAKE_INSTALL_PREFIX:PATH="${{github.workspace}}\install" -G "${env:BUILD_VC_GENERATOR}" -T "${env:BUILD_VC_TOOLCHAIN}" -A "${env:BUILD_VC_TARGET_PLATFORMNAME}" -S "${{github.workspace}}\source" -B "${{github.workspace}}\build"
+        }
+
+    - name: Build
+      working-directory: ${{github.workspace}}/build
+      env:
+        CXXFLAGS: '/MP'
+      # Execute the build.  You can specify a specific target with "--target <NAME>"
+      run: cmake --build . --config ${env:BUILD_TYPE} --target install
+
+    - name: Package
+      working-directory: ${{github.workspace}}
+      # Package the install output into a zip
+      # Name the zip file based on the platform-name & repo info:
+      #   nsisfilecheck-<BUILD_DESC>.zip
+      run: |
+        cmd /c 7z a "nsisfilecheck-$($env:BUILD_DESC).zip" "${{github.workspace}}\install\*"
+    
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2
+      if: success()
+      with:
+        name: nsisfilecheck_win_${{matrix.architecture}}
+        path: '${{github.workspace}}\nsisfilecheck-*.zip'
+        if-no-files-found: 'error'
