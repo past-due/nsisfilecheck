@@ -5,7 +5,7 @@
 
 #include <Windows.h>
 
-#if defined(_MSC_VER) && _MSC_VER+0 >= 1400
+#if defined(_MSC_VER) && _MSC_VER+0 >= 1400 && (defined(_M_IX86) || defined(_M_X64))
 #if defined(_MSC_FULL_VER) && _MSC_FULL_VER+0 >= 140050727
 #include <intrin.h>
 #else
@@ -15,6 +15,9 @@ EXTERN_C void __stosb(BYTE*,BYTE,size_t);
 #define CRTINTRINSIC_memset(p,c,s) __stosb((BYTE*)(p),(BYTE)(c),(s))
 #endif
 
+#if !defined(CRTINTRINSIC_memset) && defined(_MSC_VER)
+#pragma optimize( "", off )
+#endif
 extern "C" void* __cdecl crtless_memset(void *p, int c, size_t z)
 {
 #ifdef CRTINTRINSIC_memset
@@ -26,3 +29,6 @@ extern "C" void* __cdecl crtless_memset(void *p, int c, size_t z)
 #endif
 	return p;
 }
+#if !defined(CRTINTRINSIC_memset) && defined(_MSC_VER)
+#pragma optimize( "", on )
+#endif
